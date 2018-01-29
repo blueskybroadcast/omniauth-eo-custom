@@ -1,0 +1,20 @@
+{
+  "access_token":"KNlS-3-6ZZv_ldTmgzF8SecHYodwTVwAIZ-",
+  "token_type":"bearer",
+  "expires_in":287999,
+  "refresh_token":"000dbc755e664b8c9a0e340cf0306e74",
+  "Authenticated":"True",
+  "FirstName":"Bender",
+  "LastName":"Rodriguez",
+  "NickName":"bendergetsbetter",
+  "MemberId":"8047c414-5f2e-e111-855d-842b2b1847a5",
+  "HomeChapterIdGuid":"",
+  "HomeChapterName":"",
+  "ForumIDGuid":"",
+  "ForumName":"",
+  "MaxFailedLoginAttempts":"5",
+  "UserId":"{D4441111-49EA-43EE-9624-404DBD6FB97E}",
+  "as:client_id":"planet-express-195khs1s",
+  ".issued":"Thu, 25 Jan 2018 07:56:22 GMT",
+  ".expires":"Sun, 28 Jan 2018 15:56:22 GMT"
+}

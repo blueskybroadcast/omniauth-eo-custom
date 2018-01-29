@@ -1,0 +1,21 @@
+{
+  "Authenticated":true,
+  "FailedLoginAttempts":0,
+  "FirstName":"Bender",
+  "ForumID":1,
+  "ForumIDGuid":"",
+  "ForumName":"",
+  "HomeChapterId":12222,
+  "HomeChapterIdGuid":"55d5728e-3f2e-e111-855d-842b2b1847a5",
+  "HomeChapterName":"",
+  "IsMemberAuthentication":false,
+  "LastName":"Rodriguez",
+  "LoginResponse":"Valid login",
+  "LoginResponseReason":7,
+  "MaxFailedLoginAttempts":0,
+  "MemberAccountLockedUntil":"\/Date(-62135578800000-0500)\/",
+  "MemberId":"d4441111-49ea-43ee-9624-195khs1s",
+  "MemberToken":"6ec8be7e-4b7d-4a66-b937-66c1e5611c9f",
+  "MemberTokenExpiration":"\/Date(1517214408072-0500)\/",
+  "Nickname":"Daisy"
+}

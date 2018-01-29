@@ -8,8 +8,8 @@ Gem::Specification.new do |spec|
   spec.authors       = ['Max Grechko']
   spec.email         = ['gremax@gremax.me']
 
-  spec.summary       = %q{ OmniAuth Strategy for EO Custom }
-  spec.description   = %q{ Entrepreneurs' Organization Custom strategy implementation }
+  spec.summary       = 'OmniAuth Strategy for EO Custom'
+  spec.description   = "Entrepreneurs' Organization Custom strategy implementation"
   spec.homepage      = 'https://github.com/blueskybroadcast/omniauth-oe-custom'
 
   # Prevent pushing this gem to RubyGems.org. To allow pushes either set the 'allowed_push_host'
@@ -33,4 +33,5 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'bundler', '~> 1.16'
   spec.add_development_dependency 'rake', '~> 10.0'
   spec.add_development_dependency 'rspec', '~> 3.0'
+  spec.add_development_dependency 'webmock'
 end
