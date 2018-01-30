@@ -1,7 +1,24 @@
 require 'multi_json'
 
 RSpec.describe OmniAuth::Strategies::EOCustom do
+  let(:log) { double }
+  let(:authenticate_body) { response_fixture('v3/authenticate') }
+  let(:members_body) { response_fixture('v3/members') }
+  let(:member_info) do
+    {
+      region: 'US East',
+      country: 'United States of America',
+      gender: 'Male',
+      birthday: '01/01/2996'
+    }
+  end
+
   subject { described_class.new('app_id', 'secret') }
+
+  before do
+    allow(@app_event).to receive(:logs).and_return(log)
+    allow(log).to receive(:create).and_return(true)
+  end
 
   describe '#options' do
     describe '#name' do
@@ -38,6 +55,7 @@ RSpec.describe OmniAuth::Strategies::EOCustom do
   describe '#info' do
     before do
       allow(subject).to receive(:raw_member_info).and_return(response_fixture('v2/member'))
+      allow(subject).to receive(:custom_fields_data).and_return(member_info)
     end
 
     context 'first_name' do
@@ -72,27 +90,16 @@ RSpec.describe OmniAuth::Strategies::EOCustom do
   end
 
   describe '#custom_fields_data' do
-    let(:authenticate_body) { response_fixture('v3/authenticate') }
-    let(:members_body) { response_fixture('v3/members') }
-    let(:expected) do
-      {
-        region: 'US East',
-        country: 'United States of America',
-        gender: 'Male',
-        birthday: '01/01/2996'
-      }
-    end
-
     before do
       stub_request(:post, 'https://api.eonetwork.org/v3/Authenticate')
         .with(body: 'grant_type=password&client_id=MUST_BE_PROVIDED&username=MUST_BE_PROVIDED&password=MUST_BE_PROVIDED')
         .to_return(status: 200, body: MultiJson.dump(authenticate_body))
-      stub_request(:get, 'https://api.eonetwork.org/v3/eo-members?ClientId=MUST_BE_PROVIDED&user_id')
+      stub_request(:get, 'https://api.eonetwork.org/v3/eo-members?ClientId=MUST_BE_PROVIDED&user_id=')
         .to_return(status: 200, body: MultiJson.dump(members_body))
     end
 
     it 'returns additional data' do
-      expect(subject.send(:custom_fields_data)).to eq expected
+      expect(subject.send(:custom_fields_data)).to eq member_info
     end
   end
 

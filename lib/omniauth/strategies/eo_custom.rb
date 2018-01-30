@@ -32,20 +32,33 @@ module OmniAuth
       end
 
       def callback_phase
+        account = Account.find_by(slug: account_slug)
+        @app_event = account.app_events.create(activity_type: 'sso')
+
         self.access_token = { token: request.params['token'] }
         validate_signature
 
         uri = "/v2/LoginSrv/Authenticate/?clientId=#{client_id}&token=#{access_token[:token]}&apiSig=#{request.params['apiSig']}"
+
+        request_log = "[EOCustom] Authenticate v2 Request:\nGET #{endpoint + uri}"
+        @app_event.logs.create(level: 'info', text: request_log)
+
         response = connection.get(uri) { |request| request.headers['Authorization'] = encode_text(endpoint + uri) }
+        response_log = "[EOCustom] Authenticate v2 Response (code: #{response.status}):\n#{response.inspect}"
 
         if response.success?
           data = to_json(response.body)
+          @app_event.logs.create(level: 'info', text: response_log)
           @member_id = data[:MemberId]
           @member_token = data[:MemberToken]
           self.env['omniauth.auth'] = auth_hash
           self.env['omniauth.origin'] = '/' + request.params['origin']
+          self.env['omniauth.app_event_id'] = @app_event.id
+          finalize_app_event
           call_app!
         else
+          @app_event.logs.create(level: 'error', text: response_log)
+          @app_event.fail!
           fail!(:invalid_credentials)
         end
       end
@@ -89,12 +102,18 @@ module OmniAuth
 
       def fetch_member_details
         uri = "/v2/MemberSrv/GetMemberDetail/?clientId=#{client_id}&token=#{@member_token}&memberId=#{@member_id}"
+        request_log = "[EOCustom] GetMemberDetail Request:\nGET #{endpoint + uri}"
+        @app_event.logs.create(level: 'info', text: request_log)
         response = connection.get(uri) { |request| request.headers['Authorization'] = encode_text(endpoint + uri) }
 
+        response_log = "[EOCustom] GetMemberDetail Response (code: #{response.status}):\n#{response.inspect}"
         if response.success?
+          @app_event.logs.create(level: 'info', text: response_log)
           to_json(response.body)
         else
-          fail!(:invalid_credentials)
+          @app_event.logs.create(level: 'error', text: response_log)
+          @app_event.fail!
+          fail!(:unknown_error)
         end
       end
 
@@ -103,31 +122,37 @@ module OmniAuth
 
         if auth_response.success?
           token = to_json(auth_response.body)[:access_token]
-          member_info(token)
+          @custom_fields_data ||= member_info(token)
         else
           fail!(:invalid_credentials)
         end
       end
 
       def member_info(token)
-        response = connection.get('/v3/eo-members') do |request|
-          request.headers['Authorization'] = "Bearer #{token}"
-          request.params['ClientId'] = client_id
-          request.params['user_id'] = @member_id
-        end
+        uri = "/v3/eo-members?ClientId=#{client_id}&user_id=#{@member_id}"
+        request_log = "[EOCustom] EOMembers Request:\nGET #{endpoint + uri}"
+        @app_event.logs.create(level: 'info', text: request_log)
+
+        response = connection.get(uri) { |request| request.headers['Authorization'] = "Bearer #{token}" }
+        response_log = "[EOCustom] EOMembers Response (code: #{response.status}):\n#{response.inspect}"
 
         if response.success?
-          data = to_json(response.body).first
-
-          {
-            region: data[:RegionName],
-            country: data[:BusinessCountry],
-            gender: data[:Gender],
-            birthday: data[:BirthDate]
-          }
+          @app_event.logs.create(level: 'info', text: response_log)
+          prepare_member_info(response)
         else
+          @app_event.logs.create(level: 'error', text: response_log)
           fail!(:invalid_credentials)
         end
+      end
+
+      def prepare_member_info(response)
+        data = to_json(response.body).first
+        {
+          region: data[:RegionName],
+          country: data[:BusinessCountry],
+          gender: data[:Gender],
+          birthday: data[:BirthDate]
+        }
       end
 
       def authenticate
@@ -153,6 +178,23 @@ module OmniAuth
       def validate_signature
         reference = encode_text(request.params['userName'] + access_token[:token])
         fail!(:invalid_credentials) unless reference.eql?(request.params['sig'])
+      end
+
+      def account_slug
+        request.params['origin']
+      end
+
+      def finalize_app_event
+        app_event_data = {
+          user_info: {
+            uid: uid,
+            first_name: info[:first_name],
+            last_name: info[:last_name],
+            email: info[:email]
+          }
+        }
+
+        @app_event.update(raw_data: app_event_data)
       end
     end
   end
