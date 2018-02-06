@@ -151,7 +151,7 @@ module OmniAuth
           region: data[:RegionName],
           country: data[:BusinessCountry],
           gender: data[:Gender],
-          birthday: data[:BirthDate]
+          birthday: data[:BirthDate].empty? ? '' : Date.strptime(data[:BirthDate], '%m/%d/%Y').year.to_s
         }
       end
 

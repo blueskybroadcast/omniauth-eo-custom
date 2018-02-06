@@ -9,7 +9,7 @@ RSpec.describe OmniAuth::Strategies::EOCustom do
       region: 'US East',
       country: 'United States of America',
       gender: 'Male',
-      birthday: '01/01/2996'
+      birthday: '2996'
     }
   end
 
