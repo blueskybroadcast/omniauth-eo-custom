@@ -94,12 +94,28 @@ RSpec.describe OmniAuth::Strategies::EOCustom do
       stub_request(:post, 'https://api.eonetwork.org/v3/Authenticate')
         .with(body: 'grant_type=password&client_id=MUST_BE_PROVIDED&username=MUST_BE_PROVIDED&password=MUST_BE_PROVIDED')
         .to_return(status: 200, body: MultiJson.dump(authenticate_body))
-      stub_request(:get, 'https://api.eonetwork.org/v3/eo-members?ClientId=MUST_BE_PROVIDED&user_id=')
-        .to_return(status: 200, body: MultiJson.dump(members_body))
     end
 
-    it 'returns additional data' do
-      expect(subject.send(:custom_fields_data)).to eq member_info
+    context 'when response is success' do
+      before do
+        stub_request(:get, 'https://api.eonetwork.org/v3/eo-members?ClientId=MUST_BE_PROVIDED&user_id=')
+          .to_return(status: 200, body: MultiJson.dump(members_body))
+      end
+
+      it 'returns additional data' do
+        expect(subject.send(:custom_fields_data)).to eq member_info
+      end
+    end
+
+    context 'when response is failed' do
+      before do
+        stub_request(:get, 'https://api.eonetwork.org/v3/eo-members?ClientId=MUST_BE_PROVIDED&user_id=')
+          .to_return(status: 500, body: 'MemberEndpoint - No Members Found !!')
+      end
+
+      it 'returns blank data' do
+        expect(subject.send(:custom_fields_data)).to eq({})
+      end
     end
   end
 

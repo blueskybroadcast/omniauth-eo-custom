@@ -141,7 +141,7 @@ module OmniAuth
           prepare_member_info(response)
         else
           @app_event.logs.create(level: 'error', text: response_log)
-          fail!(:invalid_credentials)
+          {}
         end
       end
 
