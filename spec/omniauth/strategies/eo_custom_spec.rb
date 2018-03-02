@@ -114,7 +114,7 @@ RSpec.describe OmniAuth::Strategies::EOCustom do
       end
 
       it 'returns blank data' do
-        expect(subject.send(:custom_fields_data)).to eq({})
+        expect(subject.send(:custom_fields_data)).to eq({ region: '', country: '', gender: '', birthday: '' })
       end
     end
   end
