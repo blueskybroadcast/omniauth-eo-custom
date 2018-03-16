@@ -1,0 +1,24 @@
+[
+  {
+    "EventId": "ee853d29-39f5-e611-9423-00155df03a08",
+    "EventName": "Event first name",
+    "EventScope": "Chapter Event",
+    "EventType": "Learning",
+    "EventTypeId": "14",
+    "EventHost": "University",
+    "EventHostEmail": "admin@example.com",
+    "EventStartDate": "5/10/2017 10:00:00 PM",
+    "EventEndDate": "5/11/2017 1:00:00 AM"
+  },
+  {
+    "EventId": "cb52fc27-b205-e711-9423-00155df03a08",
+    "EventName": "EO APP - Global Event",
+    "EventScope": "Global Event",
+    "EventType": "Global University",
+    "EventTypeId": "28",
+    "EventHost": "Kyle",
+    "EventHostEmail": "some_user@example.com",
+    "EventStartDate": "8/31/2017 11:00:00 AM",
+    "EventEndDate": "8/31/2017 11:00:00 PM"
+  }
+]

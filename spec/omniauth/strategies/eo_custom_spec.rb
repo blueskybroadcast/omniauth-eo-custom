@@ -3,6 +3,7 @@ require 'multi_json'
 RSpec.describe OmniAuth::Strategies::EOCustom do
   let(:log) { double }
   let(:authenticate_body) { response_fixture('v3/authenticate') }
+  let(:events_attended_body) { response_fixture('v3/events_attended') }
   let(:members_body) { response_fixture('v3/members') }
   let(:member_info) do
     {
@@ -54,8 +55,14 @@ RSpec.describe OmniAuth::Strategies::EOCustom do
 
   describe '#info' do
     before do
-      allow(subject).to receive(:raw_member_info).and_return(response_fixture('v2/member'))
-      allow(subject).to receive(:custom_fields_data).and_return(member_info)
+      allow(subject).to receive(:fetch_member_details).and_return(response_fixture('v2/member'))
+      stub_request(:get, 'https://api.eonetwork.org/v3/eo-members?ClientId=MUST_BE_PROVIDED&user_id=')
+        .to_return(status: 200, body: MultiJson.dump(members_body))
+      stub_request(:post, 'https://api.eonetwork.org/v3/Authenticate')
+        .with(body: 'grant_type=password&client_id=MUST_BE_PROVIDED&username=MUST_BE_PROVIDED&password=MUST_BE_PROVIDED')
+        .to_return(status: 200, body: MultiJson.dump(authenticate_body))
+      stub_request(:get, 'https://api.eonetwork.org/v3/eo-members/events-attended?ClientId=MUST_BE_PROVIDED&user_id=')
+        .to_return(status: 200, body: MultiJson.dump(events_attended_body))
     end
 
     context 'first_name' do
@@ -87,34 +94,42 @@ RSpec.describe OmniAuth::Strategies::EOCustom do
         expect(subject.info[:member_id]).to eq '1627aea5-8e0a-4371-9022-9b504344e724'
       end
     end
-  end
 
-  describe '#custom_fields_data' do
-    before do
-      stub_request(:post, 'https://api.eonetwork.org/v3/Authenticate')
-        .with(body: 'grant_type=password&client_id=MUST_BE_PROVIDED&username=MUST_BE_PROVIDED&password=MUST_BE_PROVIDED')
-        .to_return(status: 200, body: MultiJson.dump(authenticate_body))
+    context 'custom_fields_data' do
+      context 'when response is success' do
+        it 'returns additional data' do
+          expect(subject.info[:custom_fields_data]).to eq member_info
+        end
+      end
+
+      context 'when response is failed' do
+        before do
+          stub_request(:get, 'https://api.eonetwork.org/v3/eo-members?ClientId=MUST_BE_PROVIDED&user_id=')
+            .to_return(status: 500, body: 'MemberEndpoint - No Members Found !!')
+        end
+
+        it 'returns blank data' do
+          expect(subject.info[:custom_fields_data]).to eq({ region: '', country: '', gender: '', birthday: '' })
+        end
+      end
     end
 
-    context 'when response is success' do
-      before do
-        stub_request(:get, 'https://api.eonetwork.org/v3/eo-members?ClientId=MUST_BE_PROVIDED&user_id=')
-          .to_return(status: 200, body: MultiJson.dump(members_body))
+    context 'access_codes' do
+      context 'when response is success' do
+        it 'returns access_codes' do
+          expect(subject.info[:access_codes]).to eq ['ee853d29-39f5-e611-9423-00155df03a08', 'cb52fc27-b205-e711-9423-00155df03a08']
+        end
       end
 
-      it 'returns additional data' do
-        expect(subject.send(:custom_fields_data)).to eq member_info
-      end
-    end
+      context 'when response is failed' do
+        before do
+          stub_request(:get, 'https://api.eonetwork.org/v3/eo-members/events-attended?ClientId=MUST_BE_PROVIDED&user_id=')
+            .to_return(status: 500, body: 'MemberEndpoint - No Members Found !!')
+        end
 
-    context 'when response is failed' do
-      before do
-        stub_request(:get, 'https://api.eonetwork.org/v3/eo-members?ClientId=MUST_BE_PROVIDED&user_id=')
-          .to_return(status: 500, body: 'MemberEndpoint - No Members Found !!')
-      end
-
-      it 'returns blank data' do
-        expect(subject.send(:custom_fields_data)).to eq({ region: '', country: '', gender: '', birthday: '' })
+        it 'returns blank data' do
+          expect(subject.info[:access_codes]).to eq([])
+        end
       end
     end
   end

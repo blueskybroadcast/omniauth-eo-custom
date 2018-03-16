@@ -16,16 +16,7 @@ module OmniAuth
 
       uid { @member_id }
 
-      info do
-        {
-          first_name: raw_member_info[:FirstName],
-          last_name: raw_member_info[:LastName],
-          email: raw_member_info[:Email],
-          username: raw_member_info[:Nickname],
-          member_id: raw_member_info[:MemberId],
-          custom_fields_data: custom_fields_data
-        }
-      end
+      info { raw_member_info }
 
       def request_phase
         redirect "#{authentication_url}?clientid=#{client_id}"
@@ -93,6 +84,23 @@ module OmniAuth
         options.client_options.username
       end
 
+      def access_codes(token)
+        uri = "/v3/eo-members/events-attended?ClientId=#{client_id}&user_id=#{@member_id}"
+        request_log = "[EOCustom] EOMembers Events Attended Request:\nGET #{endpoint + uri}"
+        @app_event.logs.create(level: 'info', text: request_log)
+
+        response = connection.get(uri) { |request| request.headers['Authorization'] = "Bearer #{token}" }
+        response_log = "[EOCustom] EOMembers Events Attended Response (code: #{response.status}):\n#{response.inspect}"
+
+        if response.success?
+          @app_event.logs.create(level: 'info', text: response_log)
+          prepare_access_codes(response)
+        else
+          @app_event.logs.create(level: 'error', text: response_log)
+          []
+        end
+      end
+
       def connection
         Faraday.new(url: endpoint) do |request|
           request.headers['Accept'] = 'application/json'
@@ -117,17 +125,6 @@ module OmniAuth
         end
       end
 
-      def custom_fields_data
-        auth_response = authenticate
-
-        if auth_response.success?
-          token = to_json(auth_response.body)[:access_token]
-          @custom_fields_data ||= member_info(token)
-        else
-          fail!(:invalid_credentials)
-        end
-      end
-
       def member_info(token)
         uri = "/v3/eo-members?ClientId=#{client_id}&user_id=#{@member_id}"
         request_log = "[EOCustom] EOMembers Request:\nGET #{endpoint + uri}"
@@ -143,6 +140,11 @@ module OmniAuth
           @app_event.logs.create(level: 'error', text: response_log)
           { region: '', country: '', gender: '', birthday: '' }
         end
+      end
+
+      def prepare_access_codes(response)
+        data = to_json(response.body)
+        data.map { |event| event[:EventId] }
       end
 
       def prepare_member_info(response)
@@ -168,7 +170,31 @@ module OmniAuth
       end
 
       def raw_member_info
-        @raw_member_info ||= fetch_member_details
+        return @user_info if defined?(@user_info)
+
+        data = fetch_member_details
+        @user_info = {
+          first_name: data[:FirstName],
+          last_name: data[:LastName],
+          email: data[:Email],
+          username: data[:Nickname],
+          member_id: data[:MemberId]
+        }
+
+        auth_response = authenticate
+        response_log = "[EOCustom] V3 Authenticate Response (code: #{auth_response.status}):\n#{auth_response.inspect}"
+        if auth_response.success?
+          @app_event.logs.create(level: 'info', text: response_log)
+          token = to_json(auth_response.body)[:access_token]
+          @user_info[:custom_fields_data] = member_info(token)
+          @user_info[:access_codes] = access_codes(token)
+        else
+          @app_event.logs.create(level: 'error', text: response_log)
+          @user_info[:custom_fields_data] = { region: '', country: '', gender: '', birthday: '' }
+          @user_info[:access_codes] = []
+        end
+
+        @user_info
       end
 
       def to_json(raw)
