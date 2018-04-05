@@ -178,7 +178,8 @@ module OmniAuth
           last_name: data[:LastName],
           email: data[:Email],
           username: data[:Nickname],
-          member_id: data[:MemberId]
+          member_id: data[:MemberId],
+          member_status: data[:MemberStatus]
         }
 
         auth_response = authenticate

@@ -95,6 +95,12 @@ RSpec.describe OmniAuth::Strategies::EOCustom do
       end
     end
 
+    context 'member_status' do
+      it 'returns member_status' do
+        expect(subject.info[:member_status]).to eq 'Member'
+      end
+    end
+
     context 'custom_fields_data' do
       context 'when response is success' do
         it 'returns additional data' do
